@@ -170,36 +170,7 @@ class Mesh_Dataset(Dataset):
         X = np.column_stack((cells, barycenters, normals))
         Y = labels
 
-        # initialize batch of input and label
-        X_train = np.zeros([self.patch_size, X.shape[1]], dtype='float32')
-        Y_train = np.zeros([self.patch_size, Y.shape[1]], dtype='int32')
-        S1 = np.zeros([self.patch_size, self.patch_size], dtype='float32')
-        S2 = np.zeros([self.patch_size, self.patch_size], dtype='float32')
-
         
-
-        # calculate number of valid cells (tooth instead of gingiva)
-        positive_idx = np.argwhere(labels>0)[:, 0] #tooth idx
-        negative_idx = np.argwhere(labels==0)[:, 0] # gingiva idx
-
-        #num_positive = len(positive_idx) # number of selected tooth cells
-        
-        num_positive = 5000
-        #print(num_positive)
-
-        if num_positive > self.patch_size: # all positive_idx in this patch
-            positive_selected_idx = np.random.choice(positive_idx, size=self.patch_size, replace=False)
-            selected_idx = positive_selected_idx
-        else:   # patch contains all positive_idx and some negative_idx
-            num_negative = self.patch_size - num_positive # number of selected gingiva cells
-            positive_selected_idx = np.random.choice(positive_idx, size=num_positive, replace=False)
-            negative_selected_idx = np.random.choice(negative_idx, size=num_negative, replace=False)
-            selected_idx = np.concatenate((positive_selected_idx, negative_selected_idx))
-
-        selected_idx = np.sort(selected_idx, axis=None)
-
-        X_train[:] = X[selected_idx, :]
-        Y_train[:] = Y[selected_idx, :]
 
         # output to visualize
         #        mesh2 = Easy_Mesh()
@@ -210,6 +181,36 @@ class Mesh_Dataset(Dataset):
         #        mesh2.to_vtp('tmp.vtp')
 
         if self.model_use == "meshsegnet":
+            # initialize batch of input and label
+            X_train = np.zeros([self.patch_size, X.shape[1]], dtype='float32')
+            Y_train = np.zeros([self.patch_size, Y.shape[1]], dtype='int32')
+            S1 = np.zeros([self.patch_size, self.patch_size], dtype='float32')
+            S2 = np.zeros([self.patch_size, self.patch_size], dtype='float32')
+
+            
+
+            # calculate number of valid cells (tooth instead of gingiva)
+            positive_idx = np.argwhere(labels>0)[:, 0] #tooth idx
+            negative_idx = np.argwhere(labels==0)[:, 0] # gingiva idx
+
+            #num_positive = len(positive_idx) # number of selected tooth cells
+            
+            num_positive = 5000
+            #print(num_positive)
+
+            if num_positive > self.patch_size: # all positive_idx in this patch
+                positive_selected_idx = np.random.choice(positive_idx, size=self.patch_size, replace=False)
+                selected_idx = positive_selected_idx
+            else:   # patch contains all positive_idx and some negative_idx
+                num_negative = self.patch_size - num_positive # number of selected gingiva cells
+                positive_selected_idx = np.random.choice(positive_idx, size=num_positive, replace=False)
+                negative_selected_idx = np.random.choice(negative_idx, size=num_negative, replace=False)
+                selected_idx = np.concatenate((positive_selected_idx, negative_selected_idx))
+
+            selected_idx = np.sort(selected_idx, axis=None)
+
+            X_train[:] = X[selected_idx, :]
+            Y_train[:] = Y[selected_idx, :]
 
             D = distance_matrix(X_train[:, 9:12], X_train[:, 9:12])
             S1[D<0.1] = 1.0
@@ -227,17 +228,19 @@ class Mesh_Dataset(Dataset):
         
         # Calculate KNN with values 6 and 12
         transposed_barycenters = barycenters.transpose(1, 0)
+        transposed_barycenters = transposed_barycenters.reshape([1, transposed_barycenters.shape[0], transposed_barycenters.shape[1]])
+        transposed_barycenters = torch.from_numpy(transposed_barycenters)
         knn_6 = knn(transposed_barycenters, 6)
         knn_12 = knn(transposed_barycenters, 12)
 
-        X_train = X_train.transpose(1, 0)
-        Y_train = Y_train.transpose(1, 0)
+        X_train = X.transpose(1, 0)
+        Y_train = X.transpose(1, 0)
 
         sample = {'cells': torch.from_numpy(X_train), 'labels': torch.from_numpy(Y_train),
-                'knn_6': torch.from_numpy(knn_6), 'knn_12': torch.from_numpy(knn_12)}
+                'knn_6': knn_6, 'knn_12': knn_12}
         return sample
 
-    def get_data_to_predict(self, mesh, start_index, predict_size):      
+    def get_data_to_predict(self, mesh, start_index, predict_size):
 
         points = mesh.points().copy()
         faces = mesh.faces().copy()
@@ -331,6 +334,8 @@ class Mesh_Dataset(Dataset):
         
         # Calculate KNN with values 6 and 12
         transposed_barycenters = barycenters.transpose(1, 0)
+        transposed_barycenters = transposed_barycenters.reshape([1, transposed_barycenters.shape[0], transposed_barycenters.shape[1]])
+        transposed_barycenters = torch.from_numpy(transposed_barycenters)
         knn_6 = knn(transposed_barycenters, 6)
         knn_12 = knn(transposed_barycenters, 12)
         # numpy -> torch.tensor
