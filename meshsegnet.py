@@ -192,5 +192,6 @@ class MeshSegNet(nn.Module):
 
 if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    #device = torch.device('cpu')
     model = MeshSegNet().to(device)
     summary(model, [(15, 6000), (6000, 6000), (6000, 6000)])

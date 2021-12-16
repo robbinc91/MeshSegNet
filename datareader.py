@@ -3,7 +3,7 @@ import numpy as np
 from scipy.spatial import distance_matrix
 from torch.utils.data import Dataset
 import torch
-from blessings import Terminal
+#from blessings import Terminal
 from vedo.mesh import Mesh
 from data_io import Data_IO
 import time
@@ -41,7 +41,6 @@ class Mesh_Dataset(Dataset):
         self.total_batches = 0
         self.downsampling = False
 
-
         self.model_use = model_use
     
     def set_data_path(self, new_path):
@@ -74,19 +73,21 @@ class Mesh_Dataset(Dataset):
         else:
             self.elapsed = time.perf_counter() - self.start_time
         percent = self.progress_count / total
-        term = Terminal()
+        #term = Terminal()
         pos = -1
         if self.is_train_data:
             pos = -2
-        with term.location(0, term.height + pos):
-            #sys.stdout.write(f"Progress: {(percent * 100):.2f}%    ")
-            msg = ''
-            if self.is_train_data:
-                msg = f"Epoch: {self.epoch}/{self.total_epoch}. {self.elapsed:.2f} segs - Training on {ordernum} => {self.progress_count}/{total}. loss: {self.running_loss:.4f}, dsc: {self.running_mdsc:.4f}, sen: {self.running_msen:.4f}, ppv: {self.running_mppv:.4f}"
-            else:
-                msg = f"Epoch: {self.epoch}/{self.total_epoch}. {self.elapsed:.2f} segs - Validating on {ordernum} => {self.progress_count}/{total}. loss: {self.running_loss:.4f}, dsc: {self.running_mdsc:.4f}, sen: {self.running_msen:.4f}, ppv: {self.running_mppv:.4f}"
-            msg += f" Progress: {(percent * 100):.2f}%    " 
-            print(msg, end='\r')
+
+        print(f"Epoch: {self.epoch}/{self.total_epoch}. {self.elapsed:.2f} segs - Training on {ordernum}({self.arch}) => {self.progress_count}/{total}. loss: {self.running_loss:.4f}, dsc: {self.running_mdsc:.4f}, sen: {self.running_msen:.4f}, ppv: {self.running_mppv:.4f}")
+        #with term.location(0, term.height + pos):
+        #    #sys.stdout.write(f"Progress: {(percent * 100):.2f}%    ")
+        #    msg = ''
+        #    if self.is_train_data:
+        #        msg = f"Epoch: {self.epoch}/{self.total_epoch}. {self.elapsed:.2f} segs - Training on {ordernum}({self.arch}) => {self.progress_count}/{total}. loss: {self.running_loss:.4f}, dsc: {self.running_mdsc:.4f}, sen: {self.running_msen:.4f}, ppv: {self.running_mppv:.4f}"
+        #    else:
+        #        msg = f"Epoch: {self.epoch}/{self.total_epoch}. {self.elapsed:.2f} segs - Validating on {ordernum}({self.arch}) => {self.progress_count}/{total}. loss: {self.running_loss:.4f}, dsc: {self.running_mdsc:.4f}, sen: {self.running_msen:.4f}, ppv: {self.running_mppv:.4f}"
+        #    msg += f" Progress: {(percent * 100):.2f}%    " 
+        #    print(msg, end='\r')
 
     def __getitem__(self, idx):        
         if torch.is_tensor(idx):
@@ -170,7 +171,7 @@ class Mesh_Dataset(Dataset):
         X = np.column_stack((cells, barycenters, normals))
         Y = labels
 
-        
+       
 
         # output to visualize
         #        mesh2 = Easy_Mesh()
@@ -181,13 +182,10 @@ class Mesh_Dataset(Dataset):
         #        mesh2.to_vtp('tmp.vtp')
 
         if self.model_use == "meshsegnet":
-            # initialize batch of input and label
+             # initialize batch of input and label
             X_train = np.zeros([self.patch_size, X.shape[1]], dtype='float32')
             Y_train = np.zeros([self.patch_size, Y.shape[1]], dtype='int32')
-            S1 = np.zeros([self.patch_size, self.patch_size], dtype='float32')
-            S2 = np.zeros([self.patch_size, self.patch_size], dtype='float32')
-
-            
+        
 
             # calculate number of valid cells (tooth instead of gingiva)
             positive_idx = np.argwhere(labels>0)[:, 0] #tooth idx
@@ -211,6 +209,8 @@ class Mesh_Dataset(Dataset):
 
             X_train[:] = X[selected_idx, :]
             Y_train[:] = Y[selected_idx, :]
+            S1 = np.zeros([self.patch_size, self.patch_size], dtype='float32')
+            S2 = np.zeros([self.patch_size, self.patch_size], dtype='float32')
 
             D = distance_matrix(X_train[:, 9:12], X_train[:, 9:12])
             S1[D<0.1] = 1.0
@@ -226,21 +226,34 @@ class Mesh_Dataset(Dataset):
                         'A_S': torch.from_numpy(S1), 'A_L': torch.from_numpy(S2)}
             return sample
         
+        print(barycenters.shape)
+        
+        while 100000 % barycenters.shape[0]:
+            barycenters = np.append(barycenters, [barycenters[0]], axis=0)
+            
+            X = np.append(X, [X[0]], axis=0)
+            Y = np.append(Y, [Y[0]], axis=0)
+            #print(barycenters.shape)
+        print(barycenters.shape)
+
         # Calculate KNN with values 6 and 12
         transposed_barycenters = barycenters.transpose(1, 0)
-        transposed_barycenters = transposed_barycenters.reshape([1, transposed_barycenters.shape[0], transposed_barycenters.shape[1]])
+        transposed_barycenters = transposed_barycenters.reshape((1,transposed_barycenters.shape[0], transposed_barycenters.shape[1]))
         transposed_barycenters = torch.from_numpy(transposed_barycenters)
         knn_6 = knn(transposed_barycenters, 6)
         knn_12 = knn(transposed_barycenters, 12)
 
         X_train = X.transpose(1, 0)
-        Y_train = X.transpose(1, 0)
+        Y_train = Y.transpose(1, 0)
+
+        knn_6 = knn_6.reshape((knn_6.shape[1], knn_6.shape[2]))
+        knn_12 = knn_12.reshape((knn_12.shape[1], knn_12.shape[2]))
 
         sample = {'cells': torch.from_numpy(X_train), 'labels': torch.from_numpy(Y_train),
                 'knn_6': knn_6, 'knn_12': knn_12}
         return sample
 
-    def get_data_to_predict(self, mesh, start_index, predict_size):
+    def get_data_to_predict(self, mesh, start_index, predict_size):      
 
         points = mesh.points().copy()
         faces = mesh.faces().copy()
@@ -309,7 +322,7 @@ class Mesh_Dataset(Dataset):
             normals[:,i] = (normals[:,i] - nmeans[i]) / nstds[i]
 
         X = np.column_stack((cells, barycenters, normals))
-
+        
         if self.model_use == "meshsegnet":
             # computing A_S and A_L
             A_S = np.zeros([X.shape[0], X.shape[0]], dtype='float32')
@@ -334,16 +347,20 @@ class Mesh_Dataset(Dataset):
         
         # Calculate KNN with values 6 and 12
         transposed_barycenters = barycenters.transpose(1, 0)
-        transposed_barycenters = transposed_barycenters.reshape([1, transposed_barycenters.shape[0], transposed_barycenters.shape[1]])
+        transposed_barycenters = transposed_barycenters.reshape((1,transposed_barycenters.shape[0], transposed_barycenters.shape[1]))
         transposed_barycenters = torch.from_numpy(transposed_barycenters)
         knn_6 = knn(transposed_barycenters, 6)
         knn_12 = knn(transposed_barycenters, 12)
+        knn_6 = knn_6.reshape((knn_6.shape[1], knn_6.shape[2]))
+        knn_12 = knn_12.reshape((knn_12.shape[1], knn_12.shape[2]))
         # numpy -> torch.tensor
+
         X = X.transpose(1, 0)
         X = X.reshape([1, X.shape[0], X.shape[1]])
 
         return X, knn_6, knn_12, cells_size
 
+        
     def __get_cell_center(self, cells):
         centers = []
         for cell in cells:

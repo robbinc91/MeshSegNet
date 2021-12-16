@@ -13,7 +13,7 @@ class Data_IO():
     faces_labels => las etiquetas correspondient a cada cara
     """
     def __init__(self, from_docker, arch):
-    
+        print(F"Reading data for {arch} Arch.")
         self.vertexs = []
         self.vertexs_label = []
         self.faces = []
@@ -31,14 +31,14 @@ class Data_IO():
             else:
                 self.base_path = "/media/osmani/WD Blue SN550/src/autosegmentation/mainsrc/"
                 #self.data_path = "/media/osmani/WD Blue SN550/RevisedModels/"  + arch_path + "/"
-                self.data_path = "/media/osmani/Data/AI-Data/Filtered_Scans/Decimated-100k/" + arch_path + "/"
+                self.data_path = "/media/osmani/Data/AI-Data/Filtered_Scans/Decimated-10k/" + arch_path + "/"
 
-        #elif platform == "darwin":
+        #elif platform == "darwin"
             # OS X
         elif platform == "win32":
             # Windows...
             self.base_path = "F:/src/autosegmentation/mainsrc/"
-            self.data_path = "F:/src/autosegmentation/RevisedModels/"
+            self.data_path = "E:/yero/mexico/test_stls/Decimated-2k/Lower/"
         #p = Path(self.data_path)
         #self.orders = [f.name for f in p.iterdir() if f.is_dir()]   
 
@@ -194,11 +194,11 @@ class Data_IO():
                 fcolor = cv1
                 new_faces.append(face)
                 new_faces_labels.append(fcolor)
-            elif (cv1==0 or cv2 == 0 or cv3 == 0):
-                new_faces.append(face)
-                new_faces_labels.append(0)
+            #elif (cv1==0 or cv2 == 0 or cv3 == 0):
+            #    new_faces.append(face)
+            #    new_faces_labels.append(0)
             elif (cv1 == cv2 or cv1 == cv3): # si el color del vertice 1 es igual al 2 o al 3
-                fcolor = 20#cv1
+                #fcolor = cv1
                 if cv1 == cv2:
                     mp = self.__middle_point(self.vertexs[face[0]], self.vertexs[face[2]])
                     self.vertexs.append(mp)

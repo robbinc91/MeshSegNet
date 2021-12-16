@@ -77,7 +77,7 @@ def process_orders_by_file():
                   print("Skipping lower of order " + str(order) + ". Invalid model")
             else:    
                 print ("Opening lower of order " + str(order))
-                lower_viewer.dispaly_mesh_by_faces(order, lower_msh)
+                lower_viewer.display_mesh_by_faces(order, lower_msh)
                 #subprocess.run(["meshlab", lower_ply])
                 #k = query_yes_no("Is colors labeling valid? ")
                 k = lower_viewer.is_valid_scan
@@ -105,7 +105,7 @@ def process_orders_by_file():
             elif os.path.exists(invalid_upper) == True: 
                   print("Skipping upper of order " + str(order) + ". Invalid model") 
             else:    
-                upper_viewer.dispaly_mesh_by_faces(order, upper_msh)
+                upper_viewer.display_mesh_by_faces(order, upper_msh)
                 #subprocess.run(["meshlab", upper_ply])
                 #k = query_yes_no("Is colors labeling valid? ")
                 k = upper_viewer.is_valid_scan
@@ -131,7 +131,7 @@ def process_orders_by_file():
 
 if __name__ == '__main__':
     # base path to analize
-    root_dir = "/home/osmani/AIData/"
+    root_dir = "/home/osmani/3DScans/"
     dest_dir = "/media/osmani/Data/AI-Data/Filtered_Scans/"
 
     #get all folders in the root_dir, non recursive

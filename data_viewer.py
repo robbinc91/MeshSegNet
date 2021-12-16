@@ -3,6 +3,7 @@ from numpy.core.numeric import False_
 from vedo import buildLUT, Mesh, Points, show, settings
 from data_io import Data_IO
 from vedo.plotter import Plotter
+import os
 
 settings.useDepthPeeling = True # might help with transparencies
 
@@ -107,13 +108,17 @@ class Msh_Viewer(object):
             print(F"Processed {len(celldata)} of {total}", end='\r')
         mesh2.celldata['labels'] = celldata
 
-    def dispaly_mesh_by_faces(self, ordernum, msh_file = '', show_btns = True, reduce=False, reduce_target = 10000):
+    def display_mesh_by_faces(self, ordernum, msh_file = '', show_btns = True, reduce=False, reduce_target = 10000, recalface = False):
         self.msh_data.read_model(ordernum, msh_file)
+        #################
+        if (recalface):
+            self.msh_data.recalc_faces()
+        #################
         mesh=Mesh([self.msh_data.vertexs,self.msh_data.faces])
         mesh.celldata['labels'] = self.msh_data.faces_label        
         mesh_data = mesh.celldata['labels']
         mesh.cmap(self.lut, mesh_data, on='cells')
-        self.plotter = Plotter(pos = (2400,100))
+        self.plotter = Plotter(pos = (2400,100), size = (1500, 1000), interactive = True)
         if show_btns:
             self.valid_btn = self.plotter.addButton(
                 self.validButtonfunc,
@@ -151,27 +156,33 @@ class Msh_Viewer(object):
                 print(f"new number of cells: {num_cells}")
                 self.match_faces(mesh, mesh_2)
                 mesh = mesh_2.clone()
-                     
-        self.plotter.show(mesh, viewup='z', axes=1, interactive = True).close()
+        if self.msh_data.arch == 'upper':
+            self.plotter.show(mesh, camera={'pos':(0,-160,0), 'viewup' : (0,0,1)}, axes=2, interactive = True, title = f"{ordernum} : {self.msh_data.arch}").close()
+        else:
+            self.plotter.show(mesh, camera={'pos':(0,160,0), 'viewup' : (0,0,1)}, axes=2, interactive = True, title = f"{ordernum} : {self.msh_data.arch}").close()
         
 
         #show(mesh, pos = (2400,100), viewup='z', axes=1, title=str(ordernum)).close()
     
-    def dispaly_mesh_by_vertexs(self, ordernum):
+    def display_mesh_by_vertexs(self, ordernum, path=""):
+        if (len(path) > 0):
+            self.msh_data.set_data_path(path)
         self.msh_data.read_model(ordernum)
 
-        mesh=Mesh([self.msh_data.vertexs,self.msh_data.faces])
-        mesh.pointdata['labels'] = self.msh_vertexs_label
+        mesh=Mesh([self.msh_data.vertexs,self.msh_data.faces])        
+        mesh.pointdata['labels'] = self.msh_data.vertexs_label
         data = mesh.pointdata['labels']
         mesh.cmap(self.lut, data, on='points')
-
-        show(mesh, viewup='z', axes=1, title=order).close()
+        show(mesh, viewup='z', axes=1).close()
+        #show(mesh, viewup='z', axes=1, title=order).close()
     
-    def dispaly_mesh_by_pointcloud(self, ordernum):
+    def display_mesh_by_pointcloud(self, ordernum, path=""):
+        if (len(path) > 0):
+            self.msh_data.set_data_path(path)
         self.msh_data.read_model(ordernum)
 
-        pointCloud=Points(self.msh_vertexs)
-        pointCloud.pointdata['labels'] = self.msh_vertexs_label
+        pointCloud=Points(self.msh_data.vertexs)
+        pointCloud.pointdata['labels'] = self.msh_data.vertexs_label
         pointCloud.cmap(self.lut,on='points')
 
         plt = Plotter(pos = (1000,100))
@@ -179,20 +190,25 @@ class Msh_Viewer(object):
     
 
 if __name__ == '__main__':
-    arch = "upper"
-    models_base_path = "/home/osmani/AIData/"
-    #ordernum = 20173531
-    # file = f"{models_base_path}{ordernum}/AI_Data/{arch}_opengr_pointmatcher_result.msh"
+    arch = "lower"
+    models_base_path = "/media/osmani/Data/AI-Data/Filtered_Scans/Decimated-100k/"
+    #models_base_path = "/home/heikel/deb/repo_IA/AIDataTest/"
+    ordernum = 20221844
+    file = f"{models_base_path}{ordernum}/AI_Data/{arch}_opengr_pointmatcher_result.msh"
+    if os.path.exists(file) == False:
+            file = f"{models_base_path}{ordernum}/{arch}_opengr_pointmatcher_result.msh"
     viewer = Msh_Viewer(arch)
-    # viewer.dispaly_mesh_by_faces(ordernum, file)
-    #viewer.dispaly_mesh_by_faces(20175701)
+    
+    #viewer.display_mesh_by_faces(ordernum, file, recalface=False)
+    #viewer.display_mesh_by_vertexs(ordernum, models_base_path)
+    #viewer.display_mesh_by_pointcloud(ordernum, models_base_path)
 
-    models_base_path = f"/media/osmani/Data/AI-Data/Filtered_Scans/Decimated-100k/{arch.title()}/"
+    models_base_path = f"/media/osmani/Data/AI-Data/Filtered_Scans/Decimated-10k/{arch.title()}/"
     viewer.msh_data.set_data_path(models_base_path)
     for order in viewer.msh_data.orders:
         print(f"{order}")
         
         file = f"{models_base_path}{order}/{arch}_opengr_pointmatcher_result.msh"
-        viewer.dispaly_mesh_by_faces(order, file, show_btns = False, reduce = False, reduce_target = 10000)
+        viewer.display_mesh_by_faces(order, file, show_btns = False)
         #viewer.dispaly_mesh_by_faces(order)
     

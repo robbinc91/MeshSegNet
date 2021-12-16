@@ -4,27 +4,21 @@ from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn as nn
 from datareader import *
-from meshsegnet import *
-from imeshsegnet import *
 from metrics import *
 import utils
 import pandas as pd
-################################################################
-#Modelos que he encontrado con problemas a la hora de leerlos durante el entrenamiento:
-#20173152 - upper
-#20173355 - lower
-#175835 -= lower
-################################################################
 
+#model_use = 'meshsegnet'
+model_use = 'imeshsegnet'
+if model_use == 'imeshsegnet':
+    from imeshsegnet import *
+else:
+    from meshsegnet import *
 
-if __name__ == '__main__':
-    model_use = 'meshsegnet'
-    #model_use = 'imeshsegnet'
-    
-    
+if __name__ == '__main__':    
     arch = 'lower'
     log_index=0
-    base_path = "/home/osmani/src/autosegmentation/"    
+    base_path = "E:/yero/mexico/test_stls/"    
     project_path = os.path.join(base_path,"TeethSegmentation/")
     metrics_path = os.path.join(base_path,"Logs/",arch + "/")
     if not os.path.exists(metrics_path):
@@ -35,9 +29,9 @@ if __name__ == '__main__':
         log_index += 1
     log_file =  metrics_path + 'losses_metrics_vs_epoch_' + f"{log_index}.csv"
 
-    torch.cuda.set_device(utils.get_avail_gpu()) # assign which gpu will be used (only linux works)
+    #torch.cuda.set_device('utils.get_avail_gpu()') # assign which gpu will be used (only linux works)
     
-    model_path = os.path.join(project_path, f"models/{arch}/")
+    model_path = os.path.join(project_path, f"{model_use}/{arch}/")
     model_name = "Arcad_Mesh_Segementation"
     checkpoint_name = "latest_checkpoint.tar"
 
@@ -45,8 +39,8 @@ if __name__ == '__main__':
     num_channels = 15 #number of features
     num_epochs = 1500
     num_workers = 0
-    train_batch_size = 10
-    val_batch_size = 10
+    train_batch_size = 2
+    val_batch_size = 2
     num_batches_to_print = 20
 
     # mkdir 'models'
@@ -71,9 +65,11 @@ if __name__ == '__main__':
 
     # set model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = MeshSegNet(num_classes=num_classes, num_channels=num_channels, with_dropout=True, dropout_p=0.5).to(device, dtype=torch.float)
-    if model_use == 'imeshsegnet:':
+    
+    if model_use == 'imeshsegnet':
         model = iMeshSegNet(num_classes=num_classes, num_channels=num_channels, with_dropout=True, dropout_p=0.5).to(device, dtype=torch.float)
+    else:
+        model = MeshSegNet(num_classes=num_classes, num_channels=num_channels, with_dropout=True, dropout_p=0.5).to(device, dtype=torch.float)
     opt = optim.Adam(model.parameters(), lr=1e-4, amsgrad=True)
 
     losses, mdsc, msen, mppv = [], [], [], []
@@ -130,16 +126,26 @@ if __name__ == '__main__':
             lookup_term_1, lookup_term_2 = 'A_S', 'A_L'
             if model_use == 'imeshsegnet':
                 lookup_term_1, lookup_term_2 = 'knn_6', 'knn_12'
+                term_1 = batched_sample[lookup_term_1].to(device, dtype=torch.int)
+                term_2 = batched_sample[lookup_term_2].to(device, dtype=torch.int)
+            else:
+                term_1 = batched_sample[lookup_term_1].to(device, dtype=torch.float)
+                term_2 = batched_sample[lookup_term_2].to(device, dtype=torch.float)
 
-            term_1 = batched_sample[lookup_term_1].to(device, dtype=torch.float)
-            term_2 = batched_sample[lookup_term_2].to(device, dtype=torch.float)
-            
             one_hot_labels = nn.functional.one_hot(labels[:, 0, :], num_classes=num_classes)
 
             # zero the parameter gradients
             opt.zero_grad()
 
             # forward + backward + optimize
+            
+            print(f'input shape: {inputs.shape}')
+            print(f'term_1 shape: {term_1.shape}')
+            print(f'term_2 shape: {term_2.shape}')
+            print('')
+            #import sys
+            #sys.exit(-3)
+
             outputs = model(inputs, term_1, term_2)
             loss = Generalized_Dice_Loss(outputs, one_hot_labels, class_weights)
             dsc = weighting_DSC(outputs, one_hot_labels, class_weights)
@@ -199,14 +205,22 @@ if __name__ == '__main__':
                 lookup_term_1, lookup_term_2 = 'A_S', 'A_L'
                 if model_use == 'imeshsegnet':
                     lookup_term_1, lookup_term_2 = 'knn_6', 'knn_12'
-
-                term_1 = batched_sample[lookup_term_1].to(device, dtype=torch.float)
-                term_2 = batched_sample[lookup_term_2].to(device, dtype=torch.float)
+                    term_1 = batched_sample[lookup_term_1].to(device, dtype=torch.int)
+                    term_2 = batched_sample[lookup_term_2].to(device, dtype=torch.int)
+                else:
+                    term_1 = batched_sample[lookup_term_1].to(device, dtype=torch.float)
+                    term_2 = batched_sample[lookup_term_2].to(device, dtype=torch.float)
 
                 # send mini-batch to device
                 inputs = batched_val_sample['cells'].to(device, dtype=torch.float)
                 labels = batched_val_sample['labels'].to(device, dtype=torch.long)
                 one_hot_labels = nn.functional.one_hot(labels[:, 0, :], num_classes=num_classes)
+
+                print(f'input shape: {inputs.shape}')
+                print(f'term_1 shape: {term_1.shape}')
+                print(f'term_2 shape: {term_2.shape}')
+                print('')
+
 
                 outputs = model(inputs, term_1, term_2)
                 loss = Generalized_Dice_Loss(outputs, one_hot_labels, class_weights)
