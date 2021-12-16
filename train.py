@@ -18,7 +18,7 @@ else:
 if __name__ == '__main__':    
     arch = 'lower'
     log_index=0
-    base_path = "E:/yero/mexico/test_stls/"    
+    base_path = "/home/osmani/src/autosegmentation/"    
     project_path = os.path.join(base_path,"TeethSegmentation/")
     metrics_path = os.path.join(base_path,"Logs/",arch + "/")
     if not os.path.exists(metrics_path):

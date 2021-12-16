@@ -93,7 +93,7 @@ if __name__ == '__main__':
     #model = MeshSegNet(num_classes=num_classes, num_channels=num_channels).to(device, dtype=torch.float)
 
     # load trained model
-    model_base_path = f"E:/yero/mexico/test_stls/TeethSegmentation/{model_use}/{arch}/"
+    model_base_path = f"/home/osmani/src/autosegmentation/TeethSegmentation/models/{model_use}/{arch}/"
     checkpoint = torch.load(os.path.join(model_base_path, model_name), map_location='cpu')
     epoch_init = checkpoint['epoch']
     losses = checkpoint['losses']
@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
     predict_on_valids = True
 
-    data_path ="E:/yero/mexico/test_stls/Decimated-2k/Lower/"
+    data_path ="/home/osmani/AIData/"
     #data_path = f"/media/osmani/Data/AI-Data/Filtered_Scans/Decimated-100k/{arch.title()}/"
     
     best_dsc = (mdsc[-1] if predict_on_valids else max(val_mdsc)) * 100

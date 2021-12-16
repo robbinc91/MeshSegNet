@@ -38,7 +38,7 @@ class Data_IO():
         elif platform == "win32":
             # Windows...
             self.base_path = "F:/src/autosegmentation/mainsrc/"
-            self.data_path = "E:/yero/mexico/test_stls/Decimated-2k/Lower/"
+            self.data_path = "F:/src/autosegmentation/RevisedModels/"
         #p = Path(self.data_path)
         #self.orders = [f.name for f in p.iterdir() if f.is_dir()]   
 

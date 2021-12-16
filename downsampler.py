@@ -99,7 +99,7 @@ def match_faces(mesh, mesh2):
 
 if __name__ == "__main__":
     arch = "lower"
-    path = f"E:/yero/mexico/test_stls/{arch.title()}/"
+    path = f"/media/osmani/Data/AI-Data/Filtered_Scans/{arch.title()}/"
     data_reader = Mesh_Dataset(from_docker = False, arch = arch, is_train_data = True, train_split = 1, patch_size = 6000)
     data_reader.set_data_path(path)
     data_reader.downsampling = True
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         a = time.perf_counter()
         ordernum = data_reader.orders[index]
         wt = Data_IO(False, arch)
-        wt.data_path = f"E:/yero/mexico/test_stls/Decimated-2k/{arch.title()}/"
+        wt.data_path = f"/media/osmani/Data/AI-Data/Filtered_Scans/Decimated-100k/{arch.title()}/"
         if wt.dest_model_exists(ordernum):
             print(f"{arch} of order: {ordernum} already processed.\n\n")
             continue
