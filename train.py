@@ -8,8 +8,8 @@ from metrics import *
 import utils
 import pandas as pd
 
-#model_use = 'meshsegnet'
-model_use = 'imeshsegnet'
+model_use = 'meshsegnet'
+#model_use = 'imeshsegnet'
 if model_use == 'imeshsegnet':
     from imeshsegnet import *
 else:
@@ -65,6 +65,9 @@ if __name__ == '__main__':
 
     # set model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    torch.cuda.empty_cache()
+    torch.cuda.memory_summary(device=None, abbreviated=False)
     
     if model_use == 'imeshsegnet':
         model = iMeshSegNet(num_classes=num_classes, num_channels=num_channels, with_dropout=True, dropout_p=0.5).to(device, dtype=torch.float)

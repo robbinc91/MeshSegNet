@@ -30,8 +30,8 @@ class Data_IO():
                 self.data_path = "/tmp/src/data/"
             else:
                 self.base_path = "/media/osmani/WD Blue SN550/src/autosegmentation/mainsrc/"
-                #self.data_path = "/media/osmani/WD Blue SN550/RevisedModels/"  + arch_path + "/"
-                self.data_path = "/media/osmani/Data/AI-Data/Filtered_Scans/Decimated-10k/" + arch_path + "/"
+                #self.data_path = "/media/osmani/Data/AI-Data/Filtered_Scans/Decimated-10k/" + arch_path + "/"
+                self.data_path = "/media/osmani/Data/AI-Data/Filtered_Scans/Decimated-10k/testdata/"
 
         #elif platform == "darwin"
             # OS X

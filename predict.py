@@ -3,8 +3,7 @@ import sys
 import numpy as np
 import torch
 from datareader import Mesh_Dataset
-#from imeshsegnet import iMeshSegNet
-#from meshsegnet import *
+from meshsegnet import *
 import random
 from vedo import buildLUT, Mesh, Points, show, settings
 
@@ -53,18 +52,12 @@ def show_mesh(mesh, wintitle = "Prediction"):
         # data = mesh.pointdata['labels']#[:,2]  # pick z-coords, use them as scalar data
         # mesh.cmap(lut, data, on='points')
 
-        show(mesh, viewup='z', axes=1, title=wintitle).close()
-
-
-#model_use = 'meshsegnet'
-model_use = 'imeshsegnet'
-if model_use == 'imeshsegnet':
-    from imeshsegnet import *
-else:
-    from meshsegnet import *
-
+        show(mesh, pos=(2100, 100), viewup='z', axes=1, title=wintitle).close()
 
 if __name__ == '__main__':
+
+    model_use = 'meshsegnet'
+    #model_use = 'imeshsegnet'
 
     #gpu_id = utils.get_avail_gpu()
     #gpu_id = 0
@@ -74,8 +67,8 @@ if __name__ == '__main__':
     last_model_name = 'latest_checkpoint.tar'
     best_model_name = 'Arcad_Mesh_Segementation_best.tar'
     
-    arch = "lower"
-    use_best_model = False
+    arch = "upper"
+    use_best_model = True
 
     model_name = best_model_name if use_best_model else last_model_name
     model_msg = "Using best model" if use_best_model else "Using Last Checkpoint model"
@@ -86,14 +79,10 @@ if __name__ == '__main__':
     # set model
     #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     device = torch.device('cpu')
-    if model_use == 'imeshsegnet':
-        model = iMeshSegNet(num_classes=num_classes, num_channels=num_channels, with_dropout=True, dropout_p=0.5).to(device, dtype=torch.float)
-    else:
-        model = MeshSegNet(num_classes=num_classes, num_channels=num_channels, with_dropout=True, dropout_p=0.5).to(device, dtype=torch.float)
-    #model = MeshSegNet(num_classes=num_classes, num_channels=num_channels).to(device, dtype=torch.float)
+    model = MeshSegNet(num_classes=num_classes, num_channels=num_channels).to(device, dtype=torch.float)
 
     # load trained model
-    model_base_path = f"/home/osmani/src/autosegmentation/TeethSegmentation/models/{model_use}/{arch}/"
+    model_base_path = f"/home/osmani/src/autosegmentation/TeethSegmentation/models/{model_use}/"
     checkpoint = torch.load(os.path.join(model_base_path, model_name), map_location='cpu')
     epoch_init = checkpoint['epoch']
     losses = checkpoint['losses']
@@ -133,12 +122,12 @@ if __name__ == '__main__':
     for order in orders:
         #order_to_predict = order
         order_to_predict  = random.choice(orders)
-        #order_to_predict = 20221087#20222246#
-        invalid_path = f"{data_path}{order}/invalid.{arch}"
+        #order_to_predict = 20176479
+        invalid_path = f"{data_path}{order}/AI_Data/invalid.{arch}"
         
         if os.path.exists(invalid_path) == predict_on_valids:
             continue
-        stl_path = f"{data_path}{order_to_predict }/{arch}_opengr_pointmatcher_result.msh"
+        stl_path = f"{data_path}{order_to_predict }/AI_Data/{arch}_opengr_pointmatcher_result.msh"
         if not os.path.exists(stl_path):
             stl_path = f"{data_path}{order_to_predict }/{arch}_opengr_pointmatcher_result.msh"
             if not os.path.exists(stl_path):
@@ -148,16 +137,15 @@ if __name__ == '__main__':
             print(f'Predicting Sample filename: {order_to_predict }')            
             data_reader.data_source.read_model(order_to_predict , msh_file=stl_path)                
             mesh =Mesh([data_reader.data_source.vertexs, data_reader.data_source.faces])
-            
             total_cells = mesh.NCells()
             print(f"Total cells: {total_cells}")    
-            target_num = 10000            
+            target_num = 30000            
             if total_cells > target_num:
                 print(f'Downsampling to {target_num} cells...')            
                 ratio = target_num/total_cells # calculate ratio
                 mesh_d = mesh.clone()
                 #mesh_d.decimate(fraction=ratio, method='pro')#, boundaries=True)
-                mesh_d.decimate(fraction=ratio)#,method='pro', boundaries=True)   
+                mesh_d.decimate(fraction=ratio, N= target_num,method='pro', boundaries=True)   
                 mesh = mesh_d.clone()
                 total_cells = mesh.NCells()
                 print(f'Mesh reduced to  {total_cells} cells')            
@@ -166,18 +154,14 @@ if __name__ == '__main__':
             predicted_labels = np.empty((0,1), dtype=np.int32)
             for i in range(0, total_cells, predict_size):
                 print(i)
-                X, T_1, T_2, num_cells = data_reader.get_data_to_predict(mesh, i, predict_size)
+                X, term_1, term_2, num_cells = data_reader.get_data_to_predict(mesh, i, predict_size)
             
                 predicted_labels_d = np.zeros([num_cells, 1], dtype=np.int32)
 
                 X = torch.from_numpy(X).to(device, dtype=torch.float)
-                if model_use == 'imeshsegnet':
-                    T_1 = T_1.to(device, dtype=torch.int)
-                    T_2 = T_2.to(device, dtype=torch.int)
-                else:
-                    T_1 = torch.from_numpy(T_1).to(device, dtype=torch.float)
-                    T_2 = torch.from_numpy(T_2).to(device, dtype=torch.float)
-                tensor_prob_output = model(X, T_1, T_2).to(device, dtype=torch.float)
+                term_1 = torch.from_numpy(term_1).to(device, dtype=torch.float)
+                term_2 = torch.from_numpy(term_2).to(device, dtype=torch.float)
+                tensor_prob_output = model(X, term_1, term_2).to(device, dtype=torch.float)
                 patch_prob_output = tensor_prob_output.cpu().numpy()
 
                 for i_label in range(num_classes):

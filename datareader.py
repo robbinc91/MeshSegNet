@@ -191,9 +191,9 @@ class Mesh_Dataset(Dataset):
             positive_idx = np.argwhere(labels>0)[:, 0] #tooth idx
             negative_idx = np.argwhere(labels==0)[:, 0] # gingiva idx
 
-            #num_positive = len(positive_idx) # number of selected tooth cells
+            num_positive = len(positive_idx) # number of selected tooth cells
             
-            num_positive = 5000
+            #num_positive = 5000
             #print(num_positive)
 
             if num_positive > self.patch_size: # all positive_idx in this patch
@@ -226,7 +226,7 @@ class Mesh_Dataset(Dataset):
                         'A_S': torch.from_numpy(S1), 'A_L': torch.from_numpy(S2)}
             return sample
         
-        print(barycenters.shape)
+        #print(barycenters.shape)
         
         while 100000 % barycenters.shape[0]:
             barycenters = np.append(barycenters, [barycenters[0]], axis=0)
@@ -234,7 +234,7 @@ class Mesh_Dataset(Dataset):
             X = np.append(X, [X[0]], axis=0)
             Y = np.append(Y, [Y[0]], axis=0)
             #print(barycenters.shape)
-        print(barycenters.shape)
+        #print(barycenters.shape)
 
         # Calculate KNN with values 6 and 12
         transposed_barycenters = barycenters.transpose(1, 0)
