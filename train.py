@@ -8,7 +8,7 @@ from metrics import *
 import utils
 import pandas as pd
 
-model_use = 'meshsegnet'
+model_use = 'imeshsegnet'
 #model_use = 'imeshsegnet'
 if model_use == 'imeshsegnet':
     from imeshsegnet import *
@@ -16,9 +16,10 @@ else:
     from meshsegnet import *
 
 if __name__ == '__main__':    
+    patch_size = 5000
     arch = 'lower'
     log_index=0
-    base_path = "/home/osmani/src/autosegmentation/"    
+    base_path = "E:/yero/mexico/test_stls/"    
     project_path = os.path.join(base_path,"TeethSegmentation/")
     metrics_path = os.path.join(base_path,"Logs/",arch + "/")
     if not os.path.exists(metrics_path):
@@ -48,9 +49,9 @@ if __name__ == '__main__':
         os.makedirs(model_path)
 
     # set dataset
-    training_dataset = Mesh_Dataset(from_docker = False, arch = arch, is_train_data = True, train_split = 0.8, patch_size = 6000, model_use=model_use)
+    training_dataset = Mesh_Dataset(from_docker = False, arch = arch, is_train_data = True, train_split = 0.8, patch_size = patch_size, model_use=model_use)
     training_dataset.use_mld = False
-    val_dataset = Mesh_Dataset(from_docker = False, arch = arch, is_train_data = False, train_split = 0.8, patch_size = 6000, model_use=model_use)
+    val_dataset = Mesh_Dataset(from_docker = False, arch = arch, is_train_data = False, train_split = 0.8, patch_size = patch_size, model_use=model_use)
     val_dataset.use_mld = False
 
     train_loader = DataLoader(dataset=training_dataset,
@@ -65,9 +66,9 @@ if __name__ == '__main__':
 
     # set model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-    torch.cuda.empty_cache()
-    torch.cuda.memory_summary(device=None, abbreviated=False)
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.memory_summary(device=None, abbreviated=False)
     
     if model_use == 'imeshsegnet':
         model = iMeshSegNet(num_classes=num_classes, num_channels=num_channels, with_dropout=True, dropout_p=0.5).to(device, dtype=torch.float)
@@ -223,7 +224,6 @@ if __name__ == '__main__':
                 print(f'term_1 shape: {term_1.shape}')
                 print(f'term_2 shape: {term_2.shape}')
                 print('')
-
 
                 outputs = model(inputs, term_1, term_2)
                 loss = Generalized_Dice_Loss(outputs, one_hot_labels, class_weights)
